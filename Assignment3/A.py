@@ -138,9 +138,9 @@ def print_results(results ,output_file):
     
     f = codecs.open(output_file, encoding='utf-8', mode='w')
     for lexelt in results:
-        for instance_id,label in result[lexelt]:
-            outfile.write(main.replace_accented(lexelt + ' ' + instance_id + ' ' + sid + '\n'))
-    outfile.close()
+        for instance_id,label in results[lexelt]:
+            f.write(replace_accented(lexelt + ' ' + instance_id + ' ' + label + '\n'))
+    f.close()
 
 # run part A
 def run(train, test, language, knn_file, svm_file):
