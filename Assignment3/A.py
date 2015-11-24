@@ -1,6 +1,9 @@
 from main import replace_accented
 from sklearn import svm
 from sklearn import neighbors
+from collections import Counter
+import nltk
+import codecs
 
 # don't change the window size
 window_size = 10
@@ -23,7 +26,22 @@ def build_s(data):
     '''
     s = {}
 
-    # implement your code here
+
+    for lexelt in data:
+        inst_list = data[lexelt]
+        ws = set()
+        for inst in inst_list:
+            instance_id = inst[0]
+            left_context = inst[1]
+            head = inst[2]
+            right_context = inst[3]
+            sense_id = inst[4]
+
+            ws.update(nltk.word_tokenize(left_context)[-10:])
+            ws.update([head])
+            ws.update(nltk.word_tokenize(right_context)[:10])
+        
+        s[lexelt] = list(ws)
 
     return s
 
@@ -47,7 +65,21 @@ def vectorize(data, s):
     vectors = {}
     labels = {}
 
-    # implement your code here
+    for inst in data:
+        instance_id = inst[0]
+        left_context = inst[1]
+        head = inst[2]
+        right_context = inst[3]
+        sense_id = inst[4]
+
+        l = []
+        l = l + nltk.word_tokenize(left_context)[-10:]
+        l = l + nltk.word_tokenize(right_context)[:10]
+        l = l+ [head]
+        c = Counter(l)
+        ws = [c[w] for w in s]
+        vectors[instance_id] = ws
+        labels[instance_id] = sense_id
 
     return vectors, labels
 
@@ -78,9 +110,15 @@ def classify(X_train, X_test, y_train):
     knn_results = []
 
     svm_clf = svm.LinearSVC()
-    knn_clf = neighbors.KNeighborsClassifier()
+    knn_clf = neighbors.KNeighborsClassifier(5,weights='uniform')
 
-    # implement your code here
+    svm_clf.fit([X_train[instance_id] for instance_id in sorted(X_train)],[y_train[instance_id] for instance_id in sorted(X_train)])
+    r = svm_clf.predict([X_test[instance_id] for instance_id in sorted(X_test)])
+    svm_results = zip(sorted(X_test),r)
+
+    knn_clf.fit([X_train[instance_id] for instance_id in sorted(X_train)],[y_train[instance_id] for instance_id in sorted(X_train)])
+    r = knn_clf.predict([X_test[instance_id] for instance_id in sorted(X_test)])
+    knn_results = zip(sorted(X_test),r)
 
     return svm_results, knn_results
 
@@ -96,6 +134,13 @@ def print_results(results ,output_file):
     # implement your code here
     # don't forget to remove the accent of characters using main.replace_accented(input_str)
     # you should sort results on instance_id before printing
+
+    
+    f = codecs.open(output_file, encoding='utf-8', mode='w')
+    for lexelt in results:
+        for instance_id,label in result[lexelt]:
+            outfile.write(main.replace_accented(lexelt + ' ' + instance_id + ' ' + sid + '\n'))
+    outfile.close()
 
 # run part A
 def run(train, test, language, knn_file, svm_file):
