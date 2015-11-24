@@ -2,6 +2,7 @@ import sys
 import nltk
 import math
 import time
+import numpy
 from collections import defaultdict
 
 START_SYMBOL = '*'
@@ -245,10 +246,77 @@ def viterbi_full(brown_dev_words, taglist, known_words, q_values, e_values):
                     else:
                         q = LOG_PROB_OF_ZERO        
                     
-                    p = viterbi[-1][tuple((tag1,tag2))]+q+e
+                    p = viterbi[-1][tuple((tag1,tag2))]+q
                     if p > max:
                         max = p
-                        v[tuple((tag2,tag))] = p
+                        v[tuple((tag2,tag))] = p+e
+                        b[tuple((tag2,tag))] = tag1
+                        
+            viterbi.append(v)
+            backpointer.append(b)
+            
+        
+        max = LOG_PROB_OF_ZERO*1000
+        for tag1,tag2 in viterbi[-1]:
+            if tuple((tag1,tag2,STOP_SYMBOL)) in q_values:
+                q = q_values[tuple((tag1,tag2,STOP_SYMBOL))]
+            else:
+                q = LOG_PROB_OF_ZERO
+            p = viterbi[-1][tuple((tag1,tag2))]+q
+            if p > max:
+                max = p
+                tags = [tag1,tag2]
+        
+        for b in reversed(backpointer):
+            tag = b[tuple((tags[0],tags[1]))]
+            if tag is START_SYMBOL:
+                break
+            tags.insert(0,tag)
+            
+        s = ' '.join(['%s/%s' % (words[i],tags[i]) for i in range(len(words))]) + '\n'
+            
+        tagged.append(s)    
+    return tagged
+    
+def viterbi_numpy(brown_dev_words, taglist, known_words, q_values, e_values):
+    tagged = []
+
+    N = len(taglist)
+
+    for words in brown_dev_words:
+        
+        T = len(words)
+        
+        viterbi = numpy.zeros((T+2,N))
+        backpointer = numpy.ones((T+2,N),'int')*list(taglist).index(START_SYMBOL)
+        
+        v[tuple((START_SYMBOL,START_SYMBOL))] = 0
+        b[tuple((START_SYMBOL,START_SYMBOL))] = START_SYMBOL
+        viterbi.append(v)
+        backpointer.append(b)
+        
+        for word in words:
+            if word not in known_words:
+                word = RARE_SYMBOL
+            
+            v = {}
+            b = {}
+            for tag in taglist:
+                max = LOG_PROB_OF_ZERO*1000
+                for tag1,tag2 in viterbi[-1]:
+                    if tuple((word,tag)) in e_values:
+                        e = e_values[tuple((word,tag))]
+                    else:
+                        e = LOG_PROB_OF_ZERO
+                    if tuple((tag1,tag2,tag)) in q_values:
+                        q = q_values[tuple((tag1,tag2,tag))]
+                    else:
+                        q = LOG_PROB_OF_ZERO        
+                    
+                    p = viterbi[-1][tuple((tag1,tag2))]+q
+                    if p > max:
+                        max = p
+                        v[tuple((tag2,tag))] = p+e
                         b[tuple((tag2,tag))] = tag1
                         
             viterbi.append(v)
