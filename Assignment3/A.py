@@ -37,9 +37,9 @@ def build_s(data):
             right_context = inst[3]
             sense_id = inst[4]
 
-            ws.update(nltk.word_tokenize(left_context)[-10:])
+            ws.update(nltk.word_tokenize(left_context)[-window_size:])
             ws.update([head])
-            ws.update(nltk.word_tokenize(right_context)[:10])
+            ws.update(nltk.word_tokenize(right_context)[:window_size])
         
         s[lexelt] = list(ws)
 

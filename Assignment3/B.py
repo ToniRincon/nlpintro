@@ -1,6 +1,8 @@
 import A
 from sklearn.feature_extraction import DictVectorizer
-
+import nltk
+from collections import Counter
+from sklearn import svm
 
 # You might change the window size
 window_size = 15
@@ -21,8 +23,44 @@ def extract_features(data):
     '''
     features = {}
     labels = {}
+     
+    for inst in data:
+        instance_id = inst[0]
+        left_context = inst[1]
+        head = inst[2]
+        right_context = inst[3]
+        sense_id = inst[4]
 
-    # implement your code here
+        f = []
+        f = f + nltk.word_tokenize(left_context)[-window_size:]
+        f = f + [head]
+        f = f + nltk.word_tokenize(right_context)[:window_size]
+        
+        f = []
+        
+        try:
+            f = f + ['W-2_' + nltk.word_tokenize(left_context)[-2]]
+        except:
+            pass
+        try:
+            f = f + ['W-1_' + nltk.word_tokenize(left_context)[-1]]
+        except:
+            pass
+        f + ['W-0_' + head]
+        try:
+            f = f + ['W+1_' + nltk.word_tokenize(right_context)[0]]
+        except:
+            pass
+        try:
+            f = f + ['W+2_' + nltk.word_tokenize(right_context)[1]]
+        except:
+            pass
+        
+        fs = Counter(f)
+        print fs
+        
+        features[instance_id] = fs
+        labels[instance_id] = sense_id
 
     return features, labels
 
@@ -109,8 +147,11 @@ def classify(X_train, X_test, y_train):
 
     results = []
 
+    svm_clf = svm.LinearSVC()
 
-    # implement your code here
+    svm_clf.fit([X_train[instance_id] for instance_id in sorted(X_train)],[y_train[instance_id] for instance_id in sorted(X_train)])
+    r = svm_clf.predict([X_test[instance_id] for instance_id in sorted(X_test)])
+    results = zip(sorted(X_test),r)
 
     return results
 
